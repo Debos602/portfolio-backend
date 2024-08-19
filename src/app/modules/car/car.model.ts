@@ -14,6 +14,8 @@ const carSchema = new Schema<TCar>({
   features: { type: [String], required: true },
   pricePerHour: { type: Number, required: true },
   isDeleted: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
 const CarModel = mongoose.model<TCar>('Car', carSchema);

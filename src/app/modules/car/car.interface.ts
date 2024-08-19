@@ -1,4 +1,7 @@
+import { ObjectId } from 'mongoose';
+
 export interface TCar {
+  _id?: ObjectId;
   name: string;
   description: string;
   color: string;
@@ -7,6 +10,8 @@ export interface TCar {
   features: string[];
   pricePerHour: number;
   isDeleted: boolean; // Defaults to false
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface TDecodedToken {
