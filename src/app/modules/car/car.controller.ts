@@ -4,8 +4,6 @@ import { TCar } from './car.interface';
 
 const createCarInfo = async (req: Request, res: Response) => {
   try {
-    // Check for the Authorization header
-
     const carInfo: TCar = req.body;
     const result = await CarServices.createCar(carInfo);
 
@@ -27,16 +25,24 @@ const createCarInfo = async (req: Request, res: Response) => {
 const getAllCar = async (req: Request, res: Response) => {
   try {
     const result = await CarServices.getAllCar();
+    if (result.length === 0) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: 'No data found',
+        data: [],
+      });
+    }
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: 'Car retrieved successfully',
+      message: 'Cars retrieved successfully',
       data: result,
     });
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'An error occurred while retrieving all car',
+      message: 'An error occurred while retrieving all cars',
       error: err,
     });
   }
@@ -46,6 +52,14 @@ const getSingleCar = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const result = await CarServices.getSingleCar(id);
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: 'No data found',
+        data: {},
+      });
+    }
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -60,13 +74,13 @@ const getSingleCar = async (req: Request, res: Response) => {
     });
   }
 };
+
 const updateCarInDb = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-
     const carInfo: TCar = req.body;
     const result = await CarServices.updateCar(id, carInfo);
-    console.log(id, carInfo);
+
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -81,25 +95,27 @@ const updateCarInDb = async (req: Request, res: Response) => {
     });
   }
 };
+
 const deleteCarformDb = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const result = await CarServices.deleteCar(id);
+
     res.status(200).json({
-      success: true, // Correctly assigning `success` to be of type `boolean`
+      success: true,
       statusCode: 200,
       message: 'Car deleted successfully',
-      data: result, // Correctly assigning `data` to be of type `TUser`
+      data: result,
     });
   } catch (err) {
     res.status(500).json({
-      // Correctly assigning `statusCode` to be of type `number`
       success: false,
       message: 'An error occurred while deleting the car',
       error: err,
     });
   }
 };
+
 export const CarControllers = {
   createCarInfo,
   getAllCar,

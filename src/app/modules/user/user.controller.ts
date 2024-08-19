@@ -11,6 +11,14 @@ const SignUp = async (req: Request, res: Response) => {
     const zodParsedata = userValidationSchema.parse(user);
 
     const result = await UserServices.createUser(zodParsedata);
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: 'No data found',
+        data: {},
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -33,7 +41,7 @@ const SignIn = async (req: Request, res: Response) => {
     if (!user || user.password !== password) {
       return res.status(401).json({
         success: false,
-        statusCode: 401,
+        statusCode: 404,
         message: 'Invalid email or password',
       });
     }

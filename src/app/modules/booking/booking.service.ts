@@ -104,8 +104,6 @@ const returnCarService = async (
 
   let endHours = timeToHours(endTime);
 
-  // Log converted hours for debugging
-
   // Handle cases where end time is on the next day
   if (endHours < startHours) {
     endHours += 24; // Assume endTime is the next day

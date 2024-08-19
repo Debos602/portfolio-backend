@@ -73,16 +73,20 @@ const getAllBookingsFromDb = async (req: Request, res: Response) => {
   try {
     const { carId, date } = req.query;
 
-    // console.log('Query parameters:', { carId, date });
-    // Call the service to get the bookings, passing query parameters
     const bookings = await BookingServices.getAllBookings(
       carId as string,
       date as string,
     );
 
-    console.log(bookings);
+    if (bookings.length === 0) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: 'No data found',
+        data: [],
+      });
+    }
 
-    // Format the response with the required structure
     const formattedBookings = bookings.map((booking) => ({
       _id: booking._id,
       date: booking.date?.toISOString().split('T')[0], // Format date as YYYY-MM-DD
@@ -114,7 +118,6 @@ const getAllBookingsFromDb = async (req: Request, res: Response) => {
       updatedAt: booking.updatedAt?.toISOString(),
     }));
 
-    // Send the response
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -129,12 +132,20 @@ const getAllBookingsFromDb = async (req: Request, res: Response) => {
     });
   }
 };
+
 const getAllBookingsUserFromDb = async (req: Request, res: Response) => {
   try {
-    // Call the service to get the bookings, passing query parameters
     const bookings = await BookingServices.getAllBookings();
 
-    // Format the response with the required structure
+    if (bookings.length === 0) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: 'No data found',
+        data: [],
+      });
+    }
+
     const formattedBookings = bookings.map((booking) => ({
       _id: booking._id,
       date: booking.date?.toISOString().split('T')[0], // Format date as YYYY-MM-DD
@@ -166,7 +177,6 @@ const getAllBookingsUserFromDb = async (req: Request, res: Response) => {
       updatedAt: booking.updatedAt?.toISOString(),
     }));
 
-    // Send the response
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -181,6 +191,7 @@ const getAllBookingsUserFromDb = async (req: Request, res: Response) => {
     });
   }
 };
+
 const returnCar = async (req: Request, res: Response): Promise<void> => {
   try {
     const { bookingId, endTime } = req.body;
@@ -190,13 +201,21 @@ const returnCar = async (req: Request, res: Response): Promise<void> => {
         statusCode: 400,
         message: 'Booking ID and end time are required',
       });
-      return;
     }
 
     const updatedBooking = await BookingServices.returnCarService(
       bookingId,
       endTime,
     );
+
+    if (!updatedBooking) {
+      res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: 'Booking not found',
+        data: {},
+      });
+    }
 
     res.status(200).json({
       success: true,

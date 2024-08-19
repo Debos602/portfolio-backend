@@ -41,7 +41,11 @@ const auth = (requiredRole: string) => {
 
         // Check if the decoded role matches the required role
         if (decodedToken?.role !== requiredRole) {
-          throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
+          return res.status(401).json({
+            success: false,
+            statusCode: 401,
+            message: 'You have no access to this route',
+          });
         }
 
         // Optionally attach user information to request
