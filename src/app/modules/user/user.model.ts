@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { TSignIn, TUser } from './user.interface';
+// import bcrypt from 'bcryptjs'; // For password hashing
+import { TUser } from './user.interface';
 
 const userSchema = new Schema<TUser>(
   {
@@ -22,50 +23,41 @@ const userSchema = new Schema<TUser>(
       type: String,
       required: true,
     },
+    needsPasswordChange: {
+      type: Boolean,
+      default: true,
+    },
+    passwordChangedAt: {
+      type: Date,
+    },
     phone: {
       type: String,
       required: true,
     },
-    address: {
-      type: String,
-      required: true,
-    },
   },
   {
     timestamps: true,
-    toJSON: {
-      transform: function (doc, ret) {
-        delete ret.password;
-        return ret;
-      },
-    },
-  },
-);
-const signInSchema = new Schema<TSignIn>(
-  {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-    },
-    email: {
-      type: String,
-      required: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-  },
-  {
-    timestamps: true,
-    toJSON: {
-      transform: function (doc, ret) {
-        delete ret.password;
-        return ret;
-      },
-    },
   },
 );
 
+// Password hashing middleware
+// userSchema.pre('save', async function (next) {
+//   if (!this.isModified('password')) {
+//     return next();
+//   }
+
+//   try {
+//     // Assert that password is a string before hashing
+//     if (typeof this.password === 'string') {
+//       const salt = await bcrypt.genSalt(10);
+//       this.password = await bcrypt.hash(this.password, salt);
+//     } else {
+//       throw new Error('Password is missing or not a string');
+//     }
+//     next(); // Proceed to the next middleware
+//   } catch (error) {
+//     next(); // Pass any errors to the next middleware
+//   }
+// });
+
 export const UserModel = model<TUser>('User', userSchema);
-export const SignInModel = model<TSignIn>('SignIn', signInSchema);

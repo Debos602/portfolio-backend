@@ -43,6 +43,7 @@ const createBookingInDb = async (req: Request, res: Response) => {
           _id: result.car?._id?.toString(),
           name: result.car?.name,
           description: result.car?.description,
+          image: result.car?.image,
           color: result.car?.color,
           isElectric: result.car?.isElectric,
           features: result.car?.features,
@@ -53,6 +54,7 @@ const createBookingInDb = async (req: Request, res: Response) => {
           updatedAt: result.car?.updatedAt?.toISOString(),
         },
         totalCost: result.totalCost,
+        status: result.status,
         createdAt: result.createdAt?.toISOString(),
         updatedAt: result.updatedAt?.toISOString(),
       },
@@ -71,22 +73,9 @@ const createBookingInDb = async (req: Request, res: Response) => {
 
 const getAllBookingsFromDb = async (req: Request, res: Response) => {
   try {
-    const { carId, date } = req.query;
+    const bookings = await BookingServices.getAllBookings();
 
-    const bookings = await BookingServices.getAllBookings(
-      carId as string,
-      date as string,
-    );
-
-    if (bookings.length === 0) {
-      return res.status(404).json({
-        success: false,
-        statusCode: 404,
-        message: 'No data found',
-        data: [],
-      });
-    }
-
+    // Always return a success response, even if there are no bookings.
     const formattedBookings = bookings.map((booking) => ({
       _id: booking._id,
       date: booking.date?.toISOString().split('T')[0], // Format date as YYYY-MM-DD
@@ -104,6 +93,7 @@ const getAllBookingsFromDb = async (req: Request, res: Response) => {
         _id: booking.car?._id,
         name: booking.car?.name,
         description: booking.car?.description,
+        image: booking.car?.image,
         color: booking.car?.color,
         isElectric: booking.car?.isElectric,
         features: booking.car?.features,
@@ -114,15 +104,17 @@ const getAllBookingsFromDb = async (req: Request, res: Response) => {
         updatedAt: booking.car?.updatedAt?.toISOString(),
       },
       totalCost: booking.totalCost,
+      status: booking.status,
       createdAt: booking.createdAt?.toISOString(),
       updatedAt: booking.updatedAt?.toISOString(),
     }));
 
+    // Respond with success status and the formatted bookings or an empty array if none exist.
     res.status(200).json({
       success: true,
       statusCode: 200,
       message: 'Bookings retrieved successfully',
-      data: formattedBookings,
+      data: formattedBookings, // This will be empty if no bookings exist
     });
   } catch (error) {
     res.status(500).json({
@@ -135,17 +127,11 @@ const getAllBookingsFromDb = async (req: Request, res: Response) => {
 
 const getAllBookingsUserFromDb = async (req: Request, res: Response) => {
   try {
-    const bookings = await BookingServices.getAllBookings();
+    const userId = req.user._id; // Ensure req.user is populated
 
-    if (bookings.length === 0) {
-      return res.status(404).json({
-        success: false,
-        statusCode: 404,
-        message: 'No data found',
-        data: [],
-      });
-    }
+    const bookings = await BookingServices.getAllBookingsUser(userId);
 
+    // Format bookings data
     const formattedBookings = bookings.map((booking) => ({
       _id: booking._id,
       date: booking.date?.toISOString().split('T')[0], // Format date as YYYY-MM-DD
@@ -163,6 +149,7 @@ const getAllBookingsUserFromDb = async (req: Request, res: Response) => {
         _id: booking.car?._id,
         name: booking.car?.name,
         description: booking.car?.description,
+        image: booking.car?.image,
         color: booking.car?.color,
         isElectric: booking.car?.isElectric,
         features: booking.car?.features,
@@ -173,6 +160,7 @@ const getAllBookingsUserFromDb = async (req: Request, res: Response) => {
         updatedAt: booking.car?.updatedAt?.toISOString(),
       },
       totalCost: booking.totalCost,
+      transactionId: booking.transactionId,
       createdAt: booking.createdAt?.toISOString(),
       updatedAt: booking.updatedAt?.toISOString(),
     }));
@@ -194,29 +182,34 @@ const getAllBookingsUserFromDb = async (req: Request, res: Response) => {
 
 const returnCar = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId, endTime } = req.body;
+    const { bookingId, endTime, status } = req.body;
+    console.log(bookingId, endTime, status);
     if (!bookingId || !endTime) {
       res.status(400).json({
         success: false,
         statusCode: 400,
         message: 'Booking ID and end time are required',
       });
+      return;
     }
 
     const updatedBooking = await BookingServices.returnCarService(
       bookingId,
       endTime,
+      status,
     );
 
     if (!updatedBooking) {
+      // Handle case where booking is not found
       res.status(404).json({
         success: false,
         statusCode: 404,
         message: 'Booking not found',
-        data: {},
       });
+      return;
     }
 
+    // Successfully returned car
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -227,10 +220,65 @@ const returnCar = async (req: Request, res: Response): Promise<void> => {
     const errorMessage =
       error instanceof Error ? error.message : 'An unknown error occurred';
 
+    // Send internal server error response
     res.status(500).json({
       success: false,
       statusCode: 500,
       message: errorMessage,
+    });
+  }
+};
+
+const deleteSingleBooking = async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+
+    const result = await BookingServices.deleteSingleBookingfromDb(bookingId);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: 'Booking not found',
+        data: {},
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'Booking deleted successfully',
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'An error occurred while deleting the booking',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+const updateBookingInDb = async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+    const bookingData = req.body;
+
+    // Update the booking using the ID
+    const result = await BookingServices.updateBooking(bookingId, bookingData);
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'Booking updated successfully',
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'An error occurred while updating the booking',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
@@ -240,4 +288,6 @@ export const BookingController = {
   getAllBookingsFromDb,
   getAllBookingsUserFromDb,
   returnCar,
+  deleteSingleBooking,
+  updateBookingInDb,
 };

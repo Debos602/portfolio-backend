@@ -9,4 +9,5 @@ export const carValidationSchema = z.object({
   features: z.array(z.string()),
   pricePerHour: z.number(),
   isDeleted: z.boolean().optional().default(false),
+  image: z.string().optional(),
 });

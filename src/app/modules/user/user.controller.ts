@@ -1,16 +1,31 @@
 import { Request, Response } from 'express';
 import { TSignIn, TUser } from './user.interface';
 import { UserServices } from './user.service';
-import { userValidationSchema } from './user.validation';
+import jwt from 'jsonwebtoken';
 import { UserModel } from './user.model';
+import catchAsync from '../../utils/catcgAsync';
+import httpStatus from 'http-status';
+import bcrypt from 'bcrypt';
+import { userValidationSchema } from './user.validation';
 
 const SignUp = async (req: Request, res: Response) => {
   try {
     const user: TUser = req.body; // Correctly assigning `user` to be of type `TUser`
-
     const zodParsedata = userValidationSchema.parse(user);
 
+    // Check if a user with the same email already exists
+    const isExistuser = await UserModel.findOne({ email: user.email });
+
+    if (isExistuser) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: 'User already exists with this email',
+      });
+    }
+
     const result = await UserServices.createUser(zodParsedata);
+
     if (!result) {
       return res.status(404).json({
         success: false,
@@ -22,23 +37,27 @@ const SignUp = async (req: Request, res: Response) => {
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfullys',
+      message: 'User registered successfully',
       data: result,
     });
   } catch (err) {
+    console.error(err); // Log the error for debugging
     res.status(500).json({
       success: false,
       message: 'An error occurred while creating the user',
+      error: err instanceof Error ? err.message : 'Unknown error', // Include error message
     });
   }
 };
+
 const SignIn = async (req: Request, res: Response) => {
   try {
     const { email, password }: TSignIn = req.body;
 
+    // Find the user by email
     const user = await UserModel.findOne({ email });
 
-    if (!user || user.password !== password) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         statusCode: 404,
@@ -46,29 +65,228 @@ const SignIn = async (req: Request, res: Response) => {
       });
     }
 
-    const { accessToken } = await UserServices.signIn(user);
+    // Compare the provided password with the stored hashed password
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.password as string,
+    );
 
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        statusCode: 404,
+        message: 'Invalid email or password',
+      });
+    }
+
+    // Call signIn with user information to get the access token
+    const { accessToken } = await UserServices.signIn(email, password);
+
+    // Generate refresh token
+    const refreshToken = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.jwt_refresh_secret!,
+      {
+        expiresIn: process.env.jwt_refresh_expires_in,
+      },
+    );
+
+    // Set the refresh token as a cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true, // Prevent JavaScript access to the cookie
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Set cookie expiration (1 year)
+    });
+
+    // Send response
     res.status(200).json({
       success: true,
-      statusCode: 200,
       message: 'User logged in successfully',
       data: {
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        needsPasswordChange: user.needsPasswordChange,
+        passwordChangedAt: user.passwordChangedAt,
         phone: user.phone,
-        address: user.address,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
-      token: accessToken,
+      token: accessToken, // Include access token in response
+    });
+  } catch (err) {
+    console.error('Error during sign-in:', err);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred during sign-in',
+    });
+  }
+};
+
+const forgetPassword = async (req: Request, res: Response) => {
+  const userId = req.body._id;
+  const result = await UserServices.forgetPassword(userId);
+  res.status(200).json({
+    success: true,
+    statusCode: 200,
+    message: 'Reset link is genarated succesfully',
+    data: result,
+  });
+};
+
+const refreshToken = catchAsync(async (req: Request, res: Response) => {
+  // Extract the refreshToken from cookies
+  const { refreshToken } = req.cookies;
+
+  if (!refreshToken) {
+    return res.status(httpStatus.UNAUTHORIZED).json({
+      success: false,
+      statusCode: httpStatus.UNAUTHORIZED,
+      message: 'Refresh token not found. Please login again.',
+    });
+  }
+
+  try {
+    // Call the service to refresh the token
+    const result = await UserServices.refreshToken(refreshToken);
+
+    // Send the new access token
+    return res.status(httpStatus.OK).json({
+      success: true,
+      statusCode: httpStatus.OK,
+      message: 'Access token is retrieved successfully!',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(httpStatus.UNAUTHORIZED).json({
+      success: false,
+      statusCode: httpStatus.UNAUTHORIZED,
+      message: 'Invalid or expired refresh token. Please login again.',
+    });
+  }
+});
+
+const getAllUserFromDb = async (req: Request, res: Response) => {
+  try {
+    const users = await UserServices.getAllUser();
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'Users retrieved successfully',
+      data: users,
     });
   } catch (err) {
     res.status(500).json({
       success: false,
       statusCode: 500,
-      message: 'An error occurred during sign-in',
+      message: 'An error occurred while retrieving the users',
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+  }
+};
+
+const getUserFromDb = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user._id; // Assuming you're attaching user ID to req.user after authentication
+    const user = await UserServices.getUser(userId);
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'User retrieved successfully',
+      data: user,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'An error occurred while retrieving the user',
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+  }
+};
+const getAdminFromDb = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user._id; // Assuming you're attaching user ID to req.user after authentication
+    const user = await UserServices.getAdmin(userId);
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'User retrieved successfully',
+      data: user,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'An error occurred while retrieving the user',
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+  }
+};
+
+const updateUserinDb = async (req: Request, res: Response) => {
+  try {
+    const user: TUser = req.body;
+    const userId = req.user._id;
+
+    // Ensure the user ID (string) is passed first, then the user object
+    const result = await UserServices.updateUser(userId, user);
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'User updated successfully',
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'An error occurred while updating the user',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+const updateUserRoleInDb = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId; // Ensure this corresponds to your route definition
+
+    const { role } = req.body;
+
+    // Ensure role is valid or defined as per your application's requirements
+    if (!role) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: 'Role is required',
+      });
+    }
+
+    const result = await UserServices.updateUserRole(userId, role);
+
+    // Check if the user was found and updated
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'User role updated successfully',
+      data: result, // This will contain the updated user details
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'An error occurred while updating the user role',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
@@ -76,4 +294,11 @@ const SignIn = async (req: Request, res: Response) => {
 export const UserControllers = {
   SignUp,
   SignIn,
+  forgetPassword,
+  refreshToken,
+  getUserFromDb,
+  updateUserinDb,
+  getAdminFromDb,
+  getAllUserFromDb,
+  updateUserRoleInDb,
 };

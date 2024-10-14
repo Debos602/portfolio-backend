@@ -1,3 +1,4 @@
+import QueryBuilder from '../../builder/QueryBuilder';
 import { TCar } from './car.interface';
 import CarModel from './car.model';
 
@@ -6,8 +7,20 @@ const createCar = async (car: TCar) => {
   return result;
 };
 
-const getAllCar = async () => {
-  const result = await CarModel.find();
+const getAllCar = async (query: Record<string, unknown>) => {
+  const allCarQuery = new QueryBuilder(CarModel.find(), query)
+    .search(['name'])
+    .filter()
+    .sort()
+    .paginate();
+
+  const result = await allCarQuery.modelQuery;
+  const meta = await allCarQuery.countTotal();
+  return { result, meta };
+};
+
+const getAvailableCar = async () => {
+  const result = await CarModel.find({ status: 'available' });
   return result;
 };
 
@@ -16,9 +29,8 @@ const getSingleCar = async (id: string) => {
   return result;
 };
 
-const updateCar = async (id: string, car: TCar) => {
-  const result = await CarModel.findByIdAndUpdate(id, car, { new: true });
-  console.log(result);
+const updateCar = async (carId: string, car: TCar) => {
+  const result = await CarModel.findByIdAndUpdate(carId, car, { new: true });
   return result;
 };
 
@@ -33,4 +45,5 @@ export const CarServices = {
   getSingleCar,
   updateCar,
   deleteCar,
+  getAvailableCar,
 };

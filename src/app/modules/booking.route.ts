@@ -13,4 +13,11 @@ router.get(
   BookingController.getAllBookingsUserFromDb,
 );
 
+router.delete('/bookings/:bookingId', BookingController.deleteSingleBooking);
+router.patch(
+  '/bookings/:bookingId',
+  auth('admin'),
+  BookingController.updateBookingInDb,
+);
+
 export const BookingRoutes = router;

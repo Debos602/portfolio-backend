@@ -5,8 +5,10 @@ export type TUser = {
   email: string;
   role: 'user' | 'admin';
   password?: string;
+  confirmPassword?: string;
+  needsPasswordChange?: boolean;
+  passwordChangedAt?: Date;
   phone: string;
-  address: string;
   createdAt?: Date;
   updatedAt?: Date;
 };

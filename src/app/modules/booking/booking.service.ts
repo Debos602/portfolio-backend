@@ -1,9 +1,7 @@
-import mongoose, { FilterQuery } from 'mongoose';
 import { TBooking } from './booking.interface';
 import BookingModel from './booking.model';
-// import { TCar } from '../car/car.interface';
 import CarModel from '../car/car.model';
-// import calculateTotalCost from '../../utils/calculateTotalCost';
+// import { initiatPayment } from '../payment/payment.utils';
 
 const createBooking = async (
   carId: string,
@@ -13,15 +11,29 @@ const createBooking = async (
 ) => {
   try {
     // Create the booking
+    const transactionId = `TXN-${Date.now()}`;
     const booking = await BookingModel.create({
       car: carId,
       user: userId,
       date,
       startTime,
       totalCost: 0, // Default value, will be updated later
+      status: 'pending',
+      transactionId,
     });
 
-    // Fetch additional details
+    // Update the car's status to unavailable
+    const car = await CarModel.findByIdAndUpdate(
+      carId,
+      { status: 'unavailable' },
+      { new: true },
+    );
+
+    if (!car) {
+      throw new Error('Car not found');
+    }
+
+    // Fetch additional details for the booking
     const populatedBooking = await BookingModel.findById(booking._id)
       .populate('user') // Populate user details
       .populate('car') // Populate car details
@@ -31,6 +43,9 @@ const createBooking = async (
       throw new Error('Booking not found');
     }
 
+    // Prepare payment data
+    // initiatPayment();
+
     return populatedBooking;
   } catch (error) {
     // Throw the error to be handled by the controller
@@ -38,39 +53,8 @@ const createBooking = async (
   }
 };
 
-const getAllBookings = async (carId?: string, date?: string) => {
+const getAllBookings = async () => {
   try {
-    const filter: FilterQuery<TBooking> = {};
-
-    if (carId) {
-      filter.car = new mongoose.Types.ObjectId(carId); // Ensure carId is an ObjectId
-    }
-
-    if (date) {
-      // Parse the date and create a range from the start to the end of the day
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0); // Start of the day
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999); // End of the day
-
-      // Filter bookings that fall within the day
-      filter.date = { $gte: startOfDay, $lte: endOfDay };
-    }
-
-    const bookings = await BookingModel.find(filter)
-      .populate('user') // Populate user details
-      .populate('car'); // Populate car details
-
-    return bookings;
-  } catch (error) {
-    throw new Error(`Error getting bookings: ${error}`);
-  }
-};
-const getAllBookingsUser = async () => {
-  try {
-    // Create a filter object to hold the query conditions
-
-    // Fetch the bookings based on the filter
     const bookings = await BookingModel.find()
       .populate('user') // Populate user details
       .populate('car'); // Populate car details
@@ -80,60 +64,90 @@ const getAllBookingsUser = async () => {
     throw new Error(`Error getting bookings: ${error}`);
   }
 };
+const getAllBookingsUser = async (id: string) => {
+  try {
+    // Fetch all bookings for a given user ID
+    const bookings = await BookingModel.find({ user: id })
+      .populate('user') // Populate user details
+      .populate('car'); // Populate car details
+
+    return bookings;
+  } catch (error) {
+    throw new Error(`Error getting bookings`);
+  }
+};
+
 const returnCarService = async (
   bookingId: string,
   endTime: string,
+  status: string,
 ): Promise<TBooking | null> => {
   // Find the booking by ID
   const booking = await BookingModel.findById(bookingId)
     .populate('user')
     .populate('car')
     .exec();
+
+  // If no booking is found, return null instead of throwing an error
   if (!booking) {
-    throw new Error('Booking not found');
+    return null; // Handle in controller as a 404
   }
 
-  // Helper function to convert time string (HH:mm) to total hours
+  // Helper function to convert time string (HH:mm or hh:mm AM/PM) to total hours
   const timeToHours = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours + minutes / 60;
+    let totalHours = 0;
+    const timeParts = time.match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM))?/i);
+
+    if (timeParts) {
+      let hours = Number(timeParts[1]);
+      const minutes = Number(timeParts[2]);
+      const isPM = timeParts[3] && timeParts[3].toUpperCase() === 'PM';
+
+      if (isPM && hours < 12) {
+        hours += 12; // Convert PM hours to 24-hour format
+      } else if (!isPM && hours === 12) {
+        hours = 0; // Convert 12 AM to 0 hours
+      }
+
+      totalHours = hours + minutes / 60;
+    }
+
+    return totalHours;
   };
 
-  // Convert startTime and endTime to hours
-  const startHours = timeToHours(booking.startTime);
+  // Log and convert times
 
+  const startHours = timeToHours(booking.startTime);
   let endHours = timeToHours(endTime);
 
-  // Handle cases where end time is on the next day
-  if (endHours < startHours) {
-    endHours += 24; // Assume endTime is the next day
+  if (isNaN(startHours) || isNaN(endHours)) {
+    throw new Error('Invalid start time or end time');
   }
 
-  // Calculate duration in hours
+  // Handle next-day end time case
+  if (endHours < startHours) {
+    endHours += 24;
+  }
+
   const durationHours = endHours - startHours;
 
-  // Ensure durationHours is a valid number
   if (isNaN(durationHours) || durationHours < 0) {
     throw new Error('Invalid duration');
   }
 
-  // Validate and calculate total cost
-  const pricePerHour = booking.car?.pricePerHour ?? 0; // Default to 0 if not available
+  const pricePerHour = booking.car?.pricePerHour ?? 0;
   if (pricePerHour <= 0) {
     throw new Error('Invalid price per hour');
   }
-  const totalCost = durationHours * pricePerHour;
 
-  // Ensure totalCost is a valid number
+  const totalCost = durationHours * pricePerHour;
   if (isNaN(totalCost) || totalCost < 0) {
     throw new Error('Total cost calculation failed');
   }
 
-  // Update booking with endTime and totalCost
+  booking.status = status;
   booking.endTime = endTime;
   booking.totalCost = totalCost;
-
-  // Save updated booking
   await booking.save();
 
   // Update car status
@@ -144,9 +158,55 @@ const returnCarService = async (
   return booking;
 };
 
+const deleteSingleBookingfromDb = async (bookingId: string) => {
+  try {
+    const deletedBooking = await BookingModel.findByIdAndDelete(bookingId);
+    if (!deletedBooking) {
+      return null; // Return null if booking not found
+    }
+    const carId = deletedBooking.car._id; // Assuming car is populated in the booking
+    await CarModel.findByIdAndUpdate(carId, { status: 'available' });
+    return deletedBooking; // return null if not found
+  } catch (error) {
+    throw new Error(`Error deleting booking: ${error}`);
+  }
+};
+const updateBooking = async (bookingId: string, booking: Partial<TBooking>) => {
+  try {
+    // Update the booking with the given data
+    const updatedBooking = await BookingModel.findByIdAndUpdate(
+      bookingId,
+      { $set: booking },
+      { new: true },
+    ).populate('user'); // Ensure the user field is populated if it's a reference
+
+    // Check if user exists
+    const user = updatedBooking?.user;
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Validate transactionId and totalCost
+    if (!updatedBooking.transactionId) {
+      throw new Error('Transaction ID is required for payment');
+    }
+
+    // Prepare payment data
+    // Log payment session
+
+    return updatedBooking;
+  } catch (error) {
+    // Log the error message and throw a more informative error
+    console.error('Error:', error);
+    throw new Error(`Error updating booking: ${(error as Error).message}`);
+  }
+};
+
 export const BookingServices = {
   createBooking,
   getAllBookings,
   getAllBookingsUser,
   returnCarService,
+  deleteSingleBookingfromDb,
+  updateBooking,
 };

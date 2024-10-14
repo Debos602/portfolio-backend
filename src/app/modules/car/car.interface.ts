@@ -8,10 +8,13 @@ export interface TCar {
   isElectric: boolean;
   status?: 'available' | 'unavailable'; // Defaults to 'available'
   features: string[];
+  rating?: number;
   pricePerHour: number;
   isDeleted: boolean; // Defaults to false
   createdAt: Date;
   updatedAt: Date;
+  image?: string;
+  location: string;
 }
 
 export interface TDecodedToken {

@@ -14,6 +14,7 @@ export interface ICar {
   _id: ObjectId;
   name: string;
   description: string;
+  image: string;
   color: string;
   isElectric: boolean;
   features: string[];
@@ -34,6 +35,8 @@ export interface TBooking {
   totalCost: number;
   createdAt: Date;
   updatedAt: Date;
+  status: string;
+  transactionId: string;
 }
 
 export interface TBookingResponse {
@@ -44,6 +47,7 @@ export interface TBookingResponse {
   user?: IUser;
   car?: ICar;
   totalCost?: number;
+  status: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
