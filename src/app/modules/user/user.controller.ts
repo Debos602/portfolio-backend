@@ -125,12 +125,22 @@ const SignIn = async (req: Request, res: Response) => {
 };
 
 const forgetPassword = async (req: Request, res: Response) => {
-  const userId = req.body._id;
-  const result = await UserServices.forgetPassword(userId);
+  const email = req.body.email;
+  const result = await UserServices.forgetPassword(email);
   res.status(200).json({
     success: true,
     statusCode: 200,
     message: 'Reset link is genarated succesfully',
+    data: result,
+  });
+};
+const resetPassword = async (req: Request, res: Response) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  const result = await UserServices.resetPassword(req.body, token as string);
+  res.status(200).json({
+    success: true,
+    statusCode: 200,
+    message: 'Password is reset succesfully',
     data: result,
   });
 };
@@ -301,4 +311,5 @@ export const UserControllers = {
   getAdminFromDb,
   getAllUserFromDb,
   updateUserRoleInDb,
+  resetPassword,
 };

@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-// import bcrypt from 'bcryptjs'; // For password hashing
+
 import { TUser } from './user.interface';
 
 const userSchema = new Schema<TUser>(
@@ -36,15 +36,15 @@ const userSchema = new Schema<TUser>(
     },
     nid: {
       type: String,
-      required: true,
+      required: false,
     },
     drivingLicense: {
       type: String,
-      required: true,
+      required: false,
     },
     features: {
       type: [String],
-      required: true,
+      required: false,
     },
   },
   {

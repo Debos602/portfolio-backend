@@ -70,8 +70,8 @@ const signIn = async (email: string, password: string) => {
 // Change Password Function
 // Assuming you have a UserModel
 
-const forgetPassword = async (userId: string) => {
-  const user = await UserModel.findById(userId);
+const forgetPassword = async (email: string) => {
+  const user = await UserModel.findOne({ email });
   if (!user) {
     throw new Error('User not found');
   }
@@ -86,10 +86,36 @@ const forgetPassword = async (userId: string) => {
     config.jwt_access_token_secret as string,
     { expiresIn: '10m' }, // Correct usage of options
   );
-  const resetUiLink = `http://localhost:5000/id=${user._id}&token=${resetToken}`;
+  const resetUiLink = `${config.reset_password_ui_link}/reset-password?id=${user._id}&token=${resetToken}`;
 
-  sendEmail();
+  sendEmail(user.email, resetUiLink);
   console.log(resetUiLink);
+};
+
+const resetPassword = async (
+  payload: { _id: string; newPassword: string },
+  token: string,
+) => {
+  const user = await UserModel.findById(payload?._id);
+  if (!user) {
+    throw new Error('User not found');
+  }
+  const decoded = jwt.verify(
+    token,
+    config.jwt_access_token_secret as string,
+  ) as jwt.JwtPayload;
+
+  if (payload?._id !== decoded.userId) {
+    throw new Error('You are forbidden');
+  }
+
+  const newHashedPassword = await hash(payload?.newPassword, 10);
+  await UserModel.findOneAndUpdate(
+    { _id: decoded.userId, role: decoded.role },
+    { password: newHashedPassword },
+  );
+
+  console.log(decoded);
 };
 
 const refreshToken = async (token: string) => {
@@ -166,4 +192,5 @@ export const UserServices = {
   getAdmin,
   getAllUser,
   updateUserRole,
+  resetPassword,
 };

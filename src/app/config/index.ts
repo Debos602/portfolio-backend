@@ -16,6 +16,7 @@ const config = {
   cloud_name: process.env.cloudinary_cloudeName,
   api_key: process.env.cloudinary_api_key,
   api_secret: process.env.cloudinary_api_seqret,
+  reset_password_ui_link: process.env.RESET_PASS_UI_LINK,
 };
 
 export default config;
