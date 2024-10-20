@@ -9,6 +9,7 @@ const OrderSchema: Schema = new Schema(
     endTime: { type: String, required: true }, // Change to Date if preferred
     totalCost: { type: Number, required: true },
     transactionId: { type: String, required: true },
+    paymentStatus: { type: String, required: true },
     name: { type: String, required: true }, // Added field
     email: { type: String, required: true }, // Added field
     phone: { type: String, required: true }, // Added field

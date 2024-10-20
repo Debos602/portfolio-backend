@@ -1,7 +1,6 @@
 import { TBooking } from './booking.interface';
 import BookingModel from './booking.model';
 import CarModel from '../car/car.model';
-// import { initiatPayment } from '../payment/payment.utils';
 
 const createBooking = async (
   carId: string,
@@ -11,7 +10,7 @@ const createBooking = async (
 ) => {
   try {
     // Create the booking
-    const transactionId = `TXN-${Date.now()}`;
+
     const booking = await BookingModel.create({
       car: carId,
       user: userId,
@@ -19,7 +18,7 @@ const createBooking = async (
       startTime,
       totalCost: 0, // Default value, will be updated later
       status: 'pending',
-      transactionId,
+      paymentStatus: 'pending',
     });
 
     // Update the car's status to unavailable
@@ -44,7 +43,6 @@ const createBooking = async (
     }
 
     // Prepare payment data
-    // initiatPayment();
 
     return populatedBooking;
   } catch (error) {
@@ -184,11 +182,6 @@ const updateBooking = async (bookingId: string, booking: Partial<TBooking>) => {
     const user = updatedBooking?.user;
     if (!user) {
       throw new Error('User not found');
-    }
-
-    // Validate transactionId and totalCost
-    if (!updatedBooking.transactionId) {
-      throw new Error('Transaction ID is required for payment');
     }
 
     // Prepare payment data

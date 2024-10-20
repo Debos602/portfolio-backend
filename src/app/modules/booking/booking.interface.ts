@@ -36,7 +36,7 @@ export interface TBooking {
   createdAt: Date;
   updatedAt: Date;
   status: string;
-  transactionId: string;
+  paymentStatus: string;
 }
 
 export interface TBookingResponse {

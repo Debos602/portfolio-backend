@@ -34,6 +34,18 @@ const userSchema = new Schema<TUser>(
       type: String,
       required: true,
     },
+    nid: {
+      type: String,
+      required: true,
+    },
+    drivingLicense: {
+      type: String,
+      required: true,
+    },
+    features: {
+      type: [String],
+      required: true,
+    },
   },
   {
     timestamps: true,

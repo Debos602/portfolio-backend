@@ -55,6 +55,7 @@ const createBookingInDb = async (req: Request, res: Response) => {
         },
         totalCost: result.totalCost,
         status: result.status,
+        paymentStatus: result.paymentStatus,
         createdAt: result.createdAt?.toISOString(),
         updatedAt: result.updatedAt?.toISOString(),
       },
@@ -105,6 +106,7 @@ const getAllBookingsFromDb = async (req: Request, res: Response) => {
       },
       totalCost: booking.totalCost,
       status: booking.status,
+      paymentStatus: booking.paymentStatus,
       createdAt: booking.createdAt?.toISOString(),
       updatedAt: booking.updatedAt?.toISOString(),
     }));
@@ -160,7 +162,7 @@ const getAllBookingsUserFromDb = async (req: Request, res: Response) => {
         updatedAt: booking.car?.updatedAt?.toISOString(),
       },
       totalCost: booking.totalCost,
-      transactionId: booking.transactionId,
+      paymentStatus: booking.paymentStatus,
       createdAt: booking.createdAt?.toISOString(),
       updatedAt: booking.updatedAt?.toISOString(),
     }));

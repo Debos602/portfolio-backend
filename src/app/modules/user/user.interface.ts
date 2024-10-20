@@ -9,6 +9,9 @@ export type TUser = {
   needsPasswordChange?: boolean;
   passwordChangedAt?: Date;
   phone: string;
+  nid: string;
+  drivingLicense: string;
+  features: string[];
   createdAt?: Date;
   updatedAt?: Date;
 };
