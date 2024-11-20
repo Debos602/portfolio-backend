@@ -2,33 +2,32 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser'; // Import cookie-parser
 import { UserRoutes } from './app/modules/user.route';
-import { CarRoutes } from './app/modules/car.route';
-import { BookingRoutes } from './app/modules/booking.route';
-import { OrderRoutes } from './app/modules/order.route';
-import { PaymentRoutes } from './app/modules/payment/payment.route';
+import path from 'path';
+import globalErrorHandler from './app/Middlewar/globalErrorHandler';
 
 const app: Application = express();
 
 const corsOptions = {
-  origin: 'http://localhost:5173', // specify your frontend origin
-  credentials: true, // allow credentials like cookies or authorization headers
+  origin: 'http://localhost:5173', // Frontend origin
+  credentials: true, // Allow credentials (cookies, auth headers)
 };
 
 app.use(express.json());
 app.use(cors(corsOptions));
 app.use(cookieParser()); // Add cookie-parser middleware
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Register routes
 app.use('/api', UserRoutes);
-app.use('/api', CarRoutes);
-app.use('/api', BookingRoutes);
-app.use('/api', OrderRoutes);
-app.use('/api', PaymentRoutes);
+
+
 
 app.get('/', (req: Request, res: Response) => {
-  res.send('Welcome to the Car Rental Reservation System');
+  res.send('Welcome to our portfolio server');
 });
 
+//Global error handler
+app.use(globalErrorHandler);
 // Global "Not Found" handler for unmatched routes
 app.use((req: Request, res: Response) => {
   res.status(404).json({

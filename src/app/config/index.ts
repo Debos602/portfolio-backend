@@ -4,7 +4,7 @@ import path from 'path';
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 const config = {
-  Node_env: process.env.NODE_ENV,
+  NODE_ENV: process.env.NODE_ENV,
   port: process.env.PORT,
   database_url: process.env.DATABASE_URL,
   default_password: process.env.DEFAULT_PASSWORD,
@@ -17,6 +17,10 @@ const config = {
   api_key: process.env.cloudinary_api_key,
   api_secret: process.env.cloudinary_api_seqret,
   reset_password_ui_link: process.env.RESET_PASS_UI_LINK,
+  Store_Id: process.env.Store_Id,
+  Signature_Key: process.env.Signature_Key,
+  Payment_url: process.env.Payment_url,
+  Payment_verify_url: process.env.Payment_verify_url,
 };
 
 export default config;

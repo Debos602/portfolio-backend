@@ -23,7 +23,7 @@ const createUser = async (user: TUser) => {
     jwtPayload,
     config.jwt_access_token_secret as string,
     {
-      expiresIn: config.jwt_access_expires_in, // Use it inside the options object
+      expiresIn: '5s', // Use it inside the options object
     },
   );
 
@@ -54,14 +54,14 @@ const signIn = async (email: string, password: string) => {
   const accessToken = jwt.sign(
     jwtPayload,
     config.jwt_access_token_secret as string,
-    { expiresIn: config.jwt_access_expires_in }, // Correct usage of options
+    { expiresIn: '5s' }, // Correct usage of options
   );
 
   // Sign refresh token
   const refreshToken = jwt.sign(
     jwtPayload,
     config.jwt_refresh_secret as string,
-    { expiresIn: config.jwt_refresh_expires_in }, // Correct usage of options
+    { expiresIn: '365d' }, // Correct usage of options
   );
 
   return { user, accessToken, refreshToken };
@@ -88,7 +88,7 @@ const forgetPassword = async (email: string) => {
   );
   const resetUiLink = `${config.reset_password_ui_link}/reset-password?id=${user._id}&token=${resetToken}`;
 
-  sendEmail(user.email, resetUiLink);
+  await sendEmail(user.email, resetUiLink);
   console.log(resetUiLink);
 };
 
@@ -143,7 +143,7 @@ const refreshToken = async (token: string) => {
     const accessToken = jwt.sign(
       jwtPayload,
       config.jwt_access_token_secret as string,
-      { expiresIn: config.jwt_access_expires_in }, // Set token expiry
+      { expiresIn: '5s' }, // Set token expiry
     );
 
     // Return the new access token

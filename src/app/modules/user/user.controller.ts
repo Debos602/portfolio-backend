@@ -7,6 +7,7 @@ import catchAsync from '../../utils/catcgAsync';
 import httpStatus from 'http-status';
 import bcrypt from 'bcrypt';
 import { userValidationSchema } from './user.validation';
+import config from '../../config';
 
 const SignUp = async (req: Request, res: Response) => {
   try {
@@ -85,17 +86,18 @@ const SignIn = async (req: Request, res: Response) => {
     // Generate refresh token
     const refreshToken = jwt.sign(
       { userId: user._id, role: user.role },
-      process.env.jwt_refresh_secret!,
+      config.jwt_refresh_secret!,
       {
-        expiresIn: process.env.jwt_refresh_expires_in,
+        expiresIn: '365d',
       },
     );
 
     // Set the refresh token as a cookie
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true, // Prevent JavaScript access to the cookie
-      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-      expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Set cookie expiration (1 year)
+      httpOnly: true,
+      secure: config.NODE_ENV === 'production', // Use HTTPS in production
+      sameSite: 'none', // Allow cross-origin requests
+      expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Expire in 1 year
     });
 
     // Send response
@@ -148,7 +150,7 @@ const resetPassword = async (req: Request, res: Response) => {
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
   // Extract the refreshToken from cookies
   const { refreshToken } = req.cookies;
-
+  console.log('refreshToken', refreshToken);
   if (!refreshToken) {
     return res.status(httpStatus.UNAUTHORIZED).json({
       success: false,
@@ -165,7 +167,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     return res.status(httpStatus.OK).json({
       success: true,
       statusCode: httpStatus.OK,
-      message: 'Access token is retrieved successfully!',
+      message: 'Refresh token is retrieved successfully!',
       data: result,
     });
   } catch (error) {
