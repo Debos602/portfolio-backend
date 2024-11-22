@@ -10,11 +10,25 @@ const ProjectSchema: Schema = new Schema(
             required: true,
             trim: true,
         },
+        image: {
+            type: String,
+            required: false,
+        },
         description: {
             type: String,
             required: true,
         },
-        githubLink: {
+        githubLinkFrontend: {
+            type: String,
+            required: true,
+            validate: {
+                validator: (v: string) => {
+                    return /^https?:\/\/(www\.)?github\.com\/.+/.test(v);
+                },
+                message: 'Invalid GitHub link format.',
+            },
+        },
+        githubLinkBackend: {
             type: String,
             required: true,
             validate: {

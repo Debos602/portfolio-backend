@@ -23,7 +23,7 @@ const createUser = async (user: TUser) => {
     jwtPayload,
     config.jwt_access_token_secret as string,
     {
-      expiresIn: '5s', // Use it inside the options object
+      expiresIn: '1d', // Use it inside the options object
     },
   );
 
@@ -54,7 +54,7 @@ const signIn = async (email: string, password: string) => {
   const accessToken = jwt.sign(
     jwtPayload,
     config.jwt_access_token_secret as string,
-    { expiresIn: '5s' }, // Correct usage of options
+    { expiresIn: '1d' }, // Correct usage of options
   );
 
   // Sign refresh token
@@ -93,7 +93,7 @@ const forgetPassword = async (email: string) => {
 };
 
 const resetPassword = async (
-  payload: { _id: string; newPassword: string },
+  payload: { _id: string; newPassword: string; },
   token: string,
 ) => {
   const user = await UserModel.findById(payload?._id);

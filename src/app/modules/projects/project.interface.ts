@@ -1,6 +1,8 @@
 export type TProject = {
     title: string;
+    image?: string;
     description: string;
-    githubLink: string;
+    githubLinkFrontend: string;
+    githubLinkBackend: string;
     liveLink: string;
 };

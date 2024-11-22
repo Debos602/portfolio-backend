@@ -4,7 +4,7 @@ export type TUser = {
   name: string;
   email: string;
   role: 'user' | 'admin';
-  password?: string;
+  password: string;
   confirmPassword?: string;
   needsPasswordChange?: boolean;
   passwordChangedAt?: Date;

@@ -6,13 +6,12 @@ import { UserModel } from './user.model';
 import catchAsync from '../../utils/catcgAsync';
 import httpStatus from 'http-status';
 import bcrypt from 'bcrypt';
-import { userValidationSchema } from './user.validation';
 import config from '../../config';
 
 const SignUp = async (req: Request, res: Response) => {
   try {
     const user: TUser = req.body; // Correctly assigning `user` to be of type `TUser`
-    const zodParsedata = userValidationSchema.parse(user);
+
 
     // Check if a user with the same email already exists
     const isExistuser = await UserModel.findOne({ email: user.email });
@@ -25,7 +24,7 @@ const SignUp = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await UserServices.createUser(zodParsedata);
+    const result = await UserServices.createUser(user);
 
     if (!result) {
       return res.status(404).json({

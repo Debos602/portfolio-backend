@@ -7,7 +7,11 @@ const userSchema = new Schema<TSkill>(
       type: String,
       required: true,
     },
-   
+    description: {
+      type: String,
+      required: true,
+    },
+
   },
   {
     timestamps: true,
