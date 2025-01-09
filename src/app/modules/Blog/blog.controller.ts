@@ -5,8 +5,8 @@ import { BlogServices } from "./blog.service";
 
 
 const createBlog = catchAsync(async (req, res) => {
-    const result = await BlogServices.createBlogIntoDB(req.body);
-
+    const result = await BlogServices.createBlogIntoDB({ ...req.body, image: req.file?.path });
+    console.log(result);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -37,12 +37,18 @@ const deleteBlog = catchAsync(async (req, res) => {
     });
 });
 const updateBlog = catchAsync(async (req, res) => {
-    const result = await BlogServices.updateBlogFromDb(req.body._id, req.body);
+    const result = await BlogServices.updateBlogFromDb(
+        req.body._id, // First argument
+        {
+            ...req.body,
+            image: req.file?.path
+        } // Second argument
+    );
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: 'Blog is updated succesfully',
+        message: 'Blog is updated successfully',
         data: result,
     });
 });

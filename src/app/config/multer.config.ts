@@ -11,7 +11,7 @@ interface CloudinaryParams extends Options {
 const storage = new CloudinaryStorage({
   cloudinary: cloudinaryUpload, // This is mandatory
   params: {
-    folder: 'car-images', // specify the folder name in Cloudinary
+    folder: 'Blog-images', // specify the folder name in Cloudinary
     allowedFormats: ['jpg', 'png', 'jpeg'], // specify allowed file formats
   } as CloudinaryParams, // Cast to your custom type
 });
